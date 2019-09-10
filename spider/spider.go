@@ -13,7 +13,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-// 保存爬取结果
+// 爬取结果
 type spiderResult struct {
 	title    string // 标题
 	abstract string // 简介
@@ -165,7 +165,7 @@ func Schedule() {
 				break
 			}
 		}
-		fmt.Println(keyword, "爬取完毕")
 		saveResult(*searchResult, keyword+".csv")
+		fmt.Println(keyword, "爬取完毕")
 	}
 }

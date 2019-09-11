@@ -3,6 +3,7 @@ package spider
 import (
 	"encoding/csv"
 	"fmt"
+	"net/url"
 	url2 "net/url"
 	"os"
 	"reflect"
@@ -25,7 +26,7 @@ type spiderResult struct {
 }
 
 // 搜索url
-const serverUrl = "http://www.baidu.com/s?ie=UTF-8&wd="
+const serverUrl = "http://www.baidu.com/s?ie=UTF-8"
 
 // channel
 var c = make(chan int)
@@ -33,25 +34,27 @@ var c = make(chan int)
 // 根据关键字搜索，获取搜索结果
 func getSearchResult(keyword string, pageIndex int, searchResult *[]spiderResult) {
 	// 搜索关键字获取html内容
-	url := serverUrl + keyword + "&rn=10&pn=" + strconv.Itoa((10 * (pageIndex - 1)))
-	htmlBody := GetHtmlBody(url)
+	searchUrl := serverUrl + "&rn=10&pn=" + strconv.Itoa((10 * (pageIndex - 1))) + "&wd=" + url.QueryEscape(keyword)
+	htmlBody := GetHtmlBody(searchUrl)
+	fmt.Println(searchUrl, pageIndex)
 	if htmlBody != nil {
 		defer htmlBody.Close()
 		doc, err := goquery.NewDocumentFromReader(htmlBody)
 		if err != nil {
 			fmt.Println(keyword, "获取搜索结果失败")
+		} else {
+			// 解析html内容获取指定字段
+			doc.Find(".result.c-container").Each(func(index int, s *goquery.Selection) {
+				res := spiderResult{}
+				res.keyword = keyword
+				res.url = s.Find("h3.t a").AttrOr("href", "")
+				u, _ := url2.Parse(res.url)
+				res.domain = u.Host
+				res.title = s.Find("h3.t a").Text()
+				res.abstract = s.Find("div.c-abstract").Text()
+				(*searchResult) = append((*searchResult), res)
+			})
 		}
-		// 解析html内容获取指定字段
-		doc.Find(".result.c-container").Each(func(index int, s *goquery.Selection) {
-			res := spiderResult{}
-			res.keyword = keyword
-			res.url = s.Find("h3.t a").AttrOr("href", "")
-			u, _ := url2.Parse(res.url)
-			res.domain = u.Host
-			res.title = s.Find("h3.t a").Text()
-			res.abstract = s.Find("div.c-abstract").Text()
-			(*searchResult) = append((*searchResult), res)
-		})
 		c <- pageIndex
 	}
 }

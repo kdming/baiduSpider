@@ -55,8 +55,8 @@ func getSearchResult(keyword string, pageIndex int, searchResult *[]spiderResult
 				(*searchResult) = append((*searchResult), res)
 			})
 		}
-		c <- pageIndex
 	}
+	c <- pageIndex
 }
 
 // 获取搜索结果详情
@@ -122,6 +122,7 @@ func saveResult(searchResult []spiderResult, fileName string) error {
 // 任务调度
 func Schedule() {
 	jobs := GetJobs()
+	bT := time.Now()
 	for keyword, num := range jobs {
 		searchResult := &[]spiderResult{}
 		// 多线程搜索，默认搜索12页
@@ -144,7 +145,7 @@ func Schedule() {
 		}
 		fmt.Println(len(*searchResult))
 		// 多线程获取页面具体内容
-		limit = 20
+		limit = 100
 		index = 0
 		for {
 			for i := index; i < limit; i += 1 {
@@ -159,10 +160,10 @@ func Schedule() {
 			}
 			if limit < len(*searchResult) {
 				index = limit
-				if (limit + 20) > len(*searchResult) {
+				if (limit + 40) > len(*searchResult) {
 					limit = len(*searchResult)
 				} else {
-					limit += 20
+					limit += 40
 				}
 			} else {
 				break
@@ -171,4 +172,7 @@ func Schedule() {
 		saveResult(*searchResult, keyword+".csv")
 		fmt.Println(keyword, "爬取完毕")
 	}
+	eT := time.Since(bT) // 从开始到当前所消耗的时间
+
+	fmt.Println("Run time: ", eT)
 }
